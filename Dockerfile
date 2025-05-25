@@ -1,0 +1,4 @@
+FROM bitnami/moodle:latest
+
+ENV APACHE_HTTP_PORT_NUMBER=8080
+EXPOSE 8080
