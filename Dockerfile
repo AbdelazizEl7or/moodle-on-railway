@@ -10,8 +10,7 @@ WORKDIR /var/www/html
 
 RUN curl -L -o moodle.zip https://download.moodle.org/download.php/direct/stable500/moodle-latest-500.zip && \
     unzip moodle.zip && mv moodle/* ./ && rm -rf moodle moodle.zip && \
-
-RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
+    chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
 
 # Fix Apache to listen on Railway’s expected port
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
