@@ -12,6 +12,16 @@ RUN curl -L -o moodle.zip https://download.moodle.org/download.php/direct/stable
     unzip moodle.zip && mv moodle/* ./ && rm -rf moodle moodle.zip && \
     chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
 
+RUN mkdir -p /var/www/moodledata && \
+    chown -R www-data:www-data /var/www/moodledata && \
+    chmod -R 777 /var/www/moodledata
+
+# Force Moodle to generate HTTPS URLs during install
+RUN sed -i "/require_once(__DIR__ . '\/lib\/classes\/component.php');/a \
+if (!isset(\$_SERVER['HTTPS'])) { \$_SERVER['HTTPS'] = 'on'; } \
+\$_SERVER['HTTP_HOST'] = 'theme.magicmoodle.com'; \
+\$_SERVER['SERVER_PORT'] = 443;" /var/www/html/lib/setup.php
+
 # Fix Apache to listen on Railway’s expected port
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
     sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf
