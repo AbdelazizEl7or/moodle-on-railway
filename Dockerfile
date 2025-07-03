@@ -16,5 +16,8 @@ RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
 # Fix Apache to listen on Railway’s expected port
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
     sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
+ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 8080
