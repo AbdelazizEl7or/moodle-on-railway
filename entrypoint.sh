@@ -1,32 +1,27 @@
 #!/bin/bash
 set -e
 
-# === Static configuration (hardcoded values) ===
-MOODLE_WWWROOT="https://theme.magicmoodle.com"
-MOODLE_DATABASE_TYPE="mysqli"
-MOODLE_DATABASE_HOST="turntable.proxy.rlwy.net"
-MOODLE_DATABASE_PORT_NUMBER="48014"
-MOODLE_DATABASE_NAME="railway"
-MOODLE_DATABASE_USER="root"
-MOODLE_DATABASE_PASSWORD="WXnHQtLLhrfFVcTmXzqkSJDeLSvbuTPP"
-MOODLE_SITE_NAME="Magic Moodle"
-MOODLE_USERNAME="admin"
-MOODLE_PASSWORD="Admin123!"
-MOODLE_EMAIL="admin@example.com"
+# === Wait for MySQL to be available ===
+echo "🛠 Waiting for database connection at ${MOODLE_DATABASE_HOST}:${MOODLE_DATABASE_PORT_NUMBER}..."
+until php -r "
+$mysqli = new mysqli(getenv('MOODLE_DATABASE_HOST'), getenv('MOODLE_DATABASE_USER'), getenv('MOODLE_DATABASE_PASSWORD'), getenv('MOODLE_DATABASE_NAME'), (int)getenv('MOODLE_DATABASE_PORT_NUMBER'));
+if (\$mysqli->connect_errno) exit(1);
+"; do
+  echo "⏳ Database not ready, retrying in 3s..."
+  sleep 3
+done
 
-# === Patch Apache to listen on 8080 for Railway/Render ===
 echo "🛠 Patching Apache to listen on 8080..."
-sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
-sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/g' /etc/apache2/sites-enabled/000-default.conf
+sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf
+sed -i 's/^<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-enabled/000-default.conf
 
+# Ensure moodledata folder exists and is writable
 echo "📁 Ensuring moodledata exists and is writable..."
-if [ ! -d "/var/www/moodledata" ]; then
-  mkdir -p /var/www/moodledata
-fi
+mkdir -p /var/www/moodledata
 chown -R www-data:www-data /var/www/moodledata
 chmod -R 777 /var/www/moodledata
 
-# 1) If config.php is missing, run the CLI installer once
+# 1) Run CLI installer if this is first launch
 if [ ! -f /var/www/html/config.php ]; then
   echo "🚀 Running Moodle CLI installer…"
   php admin/cli/install.php \
@@ -46,8 +41,10 @@ if [ ! -f /var/www/html/config.php ]; then
     --adminemail="$MOODLE_EMAIL" \
     --agree-license --non-interactive
   echo "✅ Installer done. Generated config.php"
+else
+  echo "✅ config.php found, skipping install."
 fi
 
-# 2) Hand off to Apache (foreground)
+# 2) Start Apache in the foreground
 echo "🌀 Starting Apache…"
 exec apache2-foreground
