@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /var/www/html
 
-RUN curl -o moodle.zip https://download.moodle.org/download.php/direct/stable500/moodle-latest-500.zip && \
+RUN curl -L -o moodle.zip https://download.moodle.org/download.php/direct/stable500/moodle-latest-500.zip && \
     unzip moodle.zip && mv moodle/* ./ && rm -rf moodle moodle.zip
 
 RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
