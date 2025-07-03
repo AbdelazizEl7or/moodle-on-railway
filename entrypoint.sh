@@ -2,10 +2,7 @@
 
 set -e
 
-echo "🚀 Starting Moodle container with Apache..."
-
-# Start Apache in background to let Moodle install
-apache2-foreground &
+echo "🚀 Starting Moodle container..."
 
 # Wait until config.php is generated
 until [ -f /var/www/html/config.php ]; do
