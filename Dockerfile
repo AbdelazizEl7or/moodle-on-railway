@@ -1,4 +1,4 @@
-FROM php:8.1-apache
+FROM php:8.2-apache
 
 RUN apt-get update && apt-get install -y \
     unzip git libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev zip \
@@ -13,7 +13,7 @@ RUN curl -L -o moodle.zip https://download.moodle.org/download.php/direct/stable
 
 RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
 
-# ✅ Configure Apache to listen on port 8080 for Railway
+# Fix Apache to listen on Railway’s expected port
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
     sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf
 
