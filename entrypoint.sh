@@ -24,7 +24,7 @@ if ! grep -q "\$CFG->sslproxy" /var/www/html/config.php; then
 fi
 
 # Kill background Apache so we can restart it cleanly in foreground
-killall apache2
+pkill apache2
 
 echo "✅ config.php patched. Starting Apache in foreground..."
 exec apache2-foreground
