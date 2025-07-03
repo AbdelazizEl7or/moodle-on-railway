@@ -4,7 +4,7 @@ set -e
 
 echo "🚀 Starting Moodle container with Apache..."
 
-# Start Apache in the background to let Moodle auto-install via ENV vars
+# Start Apache in background to let Moodle install
 apache2-foreground &
 
 # Wait until config.php is generated
@@ -15,16 +15,13 @@ done
 
 echo "🔧 Patching config.php for HTTPS and proxy support..."
 
-# Update wwwroot to use HTTPS domain
+# Force wwwroot to use HTTPS
 sed -i "s|^\$CFG->wwwroot\s*=.*|\$CFG->wwwroot = 'https://theme.magicmoodle.com';|" /var/www/html/config.php
 
-# Append sslproxy = true if not set
+# Ensure sslproxy = true is set
 if ! grep -q "\$CFG->sslproxy" /var/www/html/config.php; then
   echo "\$CFG->sslproxy = true;" >> /var/www/html/config.php
 fi
 
-# Kill background Apache so we can restart it cleanly in foreground
-pkill apache2
-
-echo "✅ config.php patched. Starting Apache in foreground..."
+echo "✅ config.php patched. Running Apache..."
 exec apache2-foreground
