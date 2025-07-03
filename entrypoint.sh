@@ -14,10 +14,21 @@ MOODLE_USERNAME="admin"
 MOODLE_PASSWORD="Admin123!"
 MOODLE_EMAIL="admin@example.com"
 
+# === Patch Apache to listen on 8080 for Railway/Render ===
+echo "🛠 Patching Apache to listen on 8080..."
+sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
+sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/g' /etc/apache2/sites-enabled/000-default.conf
+
+echo "📁 Ensuring moodledata exists and is writable..."
+if [ ! -d "/var/www/moodledata" ]; then
+  mkdir -p /var/www/moodledata
+fi
+chown -R www-data:www-data /var/www/moodledata
+chmod -R 777 /var/www/moodledata
+
 # 1) If config.php is missing, run the CLI installer once
 if [ ! -f /var/www/html/config.php ]; then
   echo "🚀 Running Moodle CLI installer…"
-
   php admin/cli/install.php \
     --lang=en \
     --wwwroot="$MOODLE_WWWROOT" \
@@ -34,7 +45,6 @@ if [ ! -f /var/www/html/config.php ]; then
     --adminpass="$MOODLE_PASSWORD" \
     --adminemail="$MOODLE_EMAIL" \
     --agree-license --non-interactive
-
   echo "✅ Installer done. Generated config.php"
 fi
 
