@@ -22,6 +22,8 @@ if (!isset(\$_SERVER['HTTPS'])) { \$_SERVER['HTTPS'] = 'on'; } \
 \$_SERVER['HTTP_HOST'] = 'theme.magicmoodle.com'; \
 \$_SERVER['SERVER_PORT'] = 443;" /var/www/html/lib/setup.php
 
+RUN echo "max_input_vars = 5000" >> /usr/local/etc/php/conf.d/custom.ini
+
 # Fix Apache to listen on Railway’s expected port
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
     sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf
