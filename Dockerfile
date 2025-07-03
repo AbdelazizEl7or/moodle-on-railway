@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /var/www/html
 
 RUN curl -L -o moodle.zip https://download.moodle.org/download.php/direct/stable500/moodle-latest-500.zip && \
-    unzip moodle.zip && mv moodle/* ./ && rm -rf moodle moodle.zip
+    unzip moodle.zip && mv moodle/* ./ && rm -rf moodle moodle.zip && \
+    echo "<?php \$CFG = new stdClass(); \$CFG->wwwroot = 'https://theme.magicmoodle.com'; \$CFG->sslproxy = true; ?>" > /var/www/html/config.php
 
 RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
 
