@@ -1,18 +1,16 @@
-FROM bitnami/moodle:5.0.1
+FROM php:8.1-apache
 
-ENV MOODLE_DATABASE_TYPE=mysqli
-ENV MOODLE_DATABASE_HOST=turntable.proxy.rlwy.net
-ENV MOODLE_DATABASE_PORT_NUMBER=48014
-ENV MOODLE_DATABASE_NAME=railway
-ENV MOODLE_DATABASE_USER=root
-ENV MOODLE_DATABASE_PASSWORD=WXnHQtLLhrfFVcTmXzqkSJDeLSvbuTPP
+RUN apt-get update && apt-get install -y \
+    unzip git libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev zip \
+    mariadb-client libzip-dev libpq-dev \
+    && docker-php-ext-install mysqli pdo pdo_mysql zip gd intl xml soap mbstring \
+    && a2enmod rewrite
 
-ENV MOODLE_USERNAME=admin
-ENV MOODLE_PASSWORD=Admin123!
-ENV MOODLE_EMAIL=admin@example.com
-ENV MOODLE_SITE_NAME="Magic Moodle"
-ENV MOODLE_SKIP_INSTALL=no
+WORKDIR /var/www/html
 
-ENV APACHE_HTTP_PORT_NUMBER=8080
-ENV APACHE_DISABLE_REWRITE=1
-ENV MOODLE_ENABLE_HTTPS=no
+RUN curl -o moodle.zip https://download.moodle.org/download.php/direct/stable500/moodle-latest-500.zip && \
+    unzip moodle.zip && mv moodle/* ./ && rm -rf moodle moodle.zip
+
+RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
+
+EXPOSE 80
