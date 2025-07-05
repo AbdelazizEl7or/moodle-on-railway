@@ -54,13 +54,24 @@ else
   echo "✅ config.php found, skipping install."
 fi
 
-echo "🔨 Patching config.php for proxy/SSL support…"
-cat <<'EOF' >> /var/www/html/config.php
 
-// Tell Moodle it’s behind an HTTPS terminator:
-$CFG->reverseproxy = true;
-$CFG->sslproxy    = true;
-EOF
+CONFIG=/var/www/html/config.php
+
+# 1) Force the correct wwwroot
+sed -i "s|^\(\$CFG->wwwroot *= *\).*|\1'https://theme.magicmoodle.com';|" "$CONFIG"
+
+# 2) Only add proxy/SSL flags if they’re not already there
+if ! grep -q "reverseproxy" "$CONFIG"; then
+  echo "🔨 Adding reverseproxy & sslproxy flags to config.php…"
+  cat << 'PHP' >> "$CONFIG"
+
+
+// — Moodle runs behind an HTTPS terminator —
+\$CFG->reverseproxy = true;
+\$CFG->sslproxy    = true;
+PHP
+fi
+
 
 # Fix perms one last time
 chown -R www-data:www-data /var/www/html
