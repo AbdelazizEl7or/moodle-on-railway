@@ -54,7 +54,7 @@ else
   echo "✅ config.php found, skipping install."
 fi
 
-
+# ─── after installer / before fixing perms ───
 CONFIG=/var/www/html/config.php
 
 # 1) Force the right wwwroot
@@ -65,12 +65,12 @@ if ! grep -q "reverseproxy" "$CONFIG"; then
   echo "🔨 Adding reverseproxy & sslproxy flags to config.php…"
   cat << 'EOF' >> "$CONFIG"
 
-  // — Moodle runs behind an HTTPS terminator —
-  $CFG->reverseproxy = true;
-  $CFG->sslproxy    = true;
-  EOF
-fi
+// — Moodle runs behind an HTTPS terminator —
+\$CFG->reverseproxy = true;
+\$CFG->sslproxy    = true;
+EOF
 
+fi
 
 
 # Fix perms one last time
