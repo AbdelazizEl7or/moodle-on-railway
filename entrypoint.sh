@@ -24,6 +24,13 @@ echo "🛠 Patching Apache to listen on 8080..."
 sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf
 sed -i 's/^<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-enabled/000-default.conf
 
+# ─── teach Apache to honour Railway’s X-Forwarded-Proto ───
+a2enmod setenvif
+sed -i '/<VirtualHost \*:8080>/a \
+    # Tell PHP that forwarded-proto=https == real https\n\
+    SetEnvIf X-Forwarded-Proto https HTTPS=on' \
+    /etc/apache2/sites-enabled/000-default.conf
+
 # Ensure moodledata folder exists and is writable
 echo "📁 Ensuring moodledata exists and is writable..."
 mkdir -p /var/www/moodledata
