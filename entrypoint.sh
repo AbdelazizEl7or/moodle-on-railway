@@ -57,20 +57,20 @@ fi
 
 CONFIG=/var/www/html/config.php
 
-# 1) Force the correct wwwroot
+# 1) Force the right wwwroot
 sed -i "s|^\(\$CFG->wwwroot *= *\).*|\1'https://theme.magicmoodle.com';|" "$CONFIG"
 
-# 2) Only add proxy/SSL flags if they’re not already there
+# 2) Add proxy flags if missing
 if ! grep -q "reverseproxy" "$CONFIG"; then
   echo "🔨 Adding reverseproxy & sslproxy flags to config.php…"
-  cat << 'PHP' >> "$CONFIG"
+  cat << 'EOF' >> "$CONFIG"
 
-
-// — Moodle runs behind an HTTPS terminator —
-\$CFG->reverseproxy = true;
-\$CFG->sslproxy    = true;
-PHP
+  // — Moodle runs behind an HTTPS terminator —
+  $CFG->reverseproxy = true;
+  $CFG->sslproxy    = true;
+  EOF
 fi
+
 
 
 # Fix perms one last time
