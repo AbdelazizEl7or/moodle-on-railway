@@ -35,7 +35,7 @@ if [ ! -f /var/www/html/config.php ]; then
   echo "🚀 Running Moodle CLI installer…"
   php admin/cli/install.php \
     --lang=en \
-    --wwwroot="$MOODLE_WWWROOT" \
+    --wwwroot="https://theme.magicmoodle.com" \
     --dataroot="/var/www/moodledata" \
     --dbtype="$MOODLE_DATABASE_TYPE" \
     --dbname="$MOODLE_DATABASE_NAME" \
@@ -53,6 +53,18 @@ if [ ! -f /var/www/html/config.php ]; then
 else
   echo "✅ config.php found, skipping install."
 fi
+
+echo "🔨 Patching config.php for proxy/SSL support…"
+cat <<'EOF' >> /var/www/html/config.php
+
+// Tell Moodle it’s behind an HTTPS terminator:
+$CFG->reverseproxy = true;
+$CFG->sslproxy    = true;
+EOF
+
+# Fix perms one last time
+chown -R www-data:www-data /var/www/html
+chmod -R 755 /var/www/html
 
 if [ -f /var/www/html/config.php ]; then
   echo "🔧 Fixing ownership of config.php and Moodle code to www-data"
