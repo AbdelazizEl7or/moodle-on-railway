@@ -24,13 +24,20 @@ echo "🛠 Patching Apache to listen on 8080..."
 sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf
 sed -i 's/^<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-enabled/000-default.conf
 
-# ─── teach Apache to honour Railway’s X-Forwarded-Proto ───
+echo "🔧 Enabling proxy headers support…"
 a2enmod setenvif
-sed -i '/<VirtualHost \*:8080>/a \
-    # Tell PHP that forwarded-proto=https == real https\n\
-    SetEnvIf X-Forwarded-Proto https HTTPS=on' \
-    /etc/apache2/sites-enabled/000-default.conf
+a2enmod remoteip
 
+# Insert our header rules right after the <VirtualHost *:8080> line:
+sed -i '/<VirtualHost \*:8080>/a \
+    # Tell PHP that X-Forwarded-Proto=https means HTTPS=on\n\
+    SetEnvIf X-Forwarded-Proto https HTTPS=on\n\
+    # Trust the proxy’s forwarded-for header from known ranges\n\
+    RemoteIPHeader X-Forwarded-For\n\
+    RemoteIPInternalProxy 127.0.0.1\n\
+    RemoteIPInternalProxy 100.64.0.0/10' \
+    /etc/apache2/sites-enabled/000-default.conf
+    
 # Ensure moodledata folder exists and is writable
 echo "📁 Ensuring moodledata exists and is writable..."
 mkdir -p /var/www/moodledata
