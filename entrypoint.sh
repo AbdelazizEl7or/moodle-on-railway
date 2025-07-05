@@ -54,6 +54,13 @@ else
   echo "✅ config.php found, skipping install."
 fi
 
+if [ -f /var/www/html/config.php ]; then
+  echo "🔧 Fixing ownership of config.php and Moodle code to www-data"
+  chown -R www-data:www-data /var/www/html
+  find /var/www/html -type d -exec chmod 755 {} \;
+  find /var/www/html -type f -exec chmod 644 {} \;
+fi
+
 # 2) Start Apache in the foreground
 echo "🌀 Starting Apache…"
 exec apache2-foreground
