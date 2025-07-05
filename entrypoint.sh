@@ -3,10 +3,19 @@ set -e
 
 # === Wait for MySQL to be available ===
 echo "🛠 Waiting for database connection at ${MOODLE_DATABASE_HOST}:${MOODLE_DATABASE_PORT_NUMBER}..."
-until php -r "
-$mysqli = new mysqli(getenv('MOODLE_DATABASE_HOST'), getenv('MOODLE_DATABASE_USER'), getenv('MOODLE_DATABASE_PASSWORD'), getenv('MOODLE_DATABASE_NAME'), (int)getenv('MOODLE_DATABASE_PORT_NUMBER'));
-if (\$mysqli->connect_errno) exit(1);
-"; do
+until php -r '
+$mysqli = new mysqli(
+  getenv("MOODLE_DATABASE_HOST"),
+  getenv("MOODLE_DATABASE_USER"),
+  getenv("MOODLE_DATABASE_PASSWORD"),
+  getenv("MOODLE_DATABASE_NAME"),
+  (int)getenv("MOODLE_DATABASE_PORT_NUMBER")
+);
+if ($mysqli->connect_errno) {
+  exit(1);
+}
+'
+do
   echo "⏳ Database not ready, retrying in 3s..."
   sleep 3
 done
