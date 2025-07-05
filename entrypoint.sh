@@ -20,26 +20,30 @@ do
   sleep 3
 done
 
+# === Apache Port and Proxy Headers ===
 echo "🛠 Patching Apache to listen on 8080..."
 sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf
 sed -i 's/^<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-enabled/000-default.conf
 
-echo "🔧 Enabling proxy headers support…"
+echo "🔧 Enabling proxy headers support..."
 a2enmod remoteip setenvif
+
+# Inject Apache reverse proxy support
 sed -i '/<VirtualHost \*:8080>/a \
+    # Honor real IP from Railway proxy\n\
     RemoteIPHeader X-Forwarded-For\n\
     RemoteIPInternalProxy 127.0.0.1\n\
     RemoteIPInternalProxy 100.64.0.0/10\n\
-    SetEnvIf X-Forwarded-Proto https HTTPS=on' \
-    /etc/apache2/sites-enabled/000-default.conf
-    
-# Ensure moodledata folder exists and is writable
+    # Honor forwarded protocol (for HTTPS redirect fix)\n\
+    SetEnvIf X-Forwarded-Proto https HTTPS=on' /etc/apache2/sites-enabled/000-default.conf
+
+# === Ensure moodledata folder is ready ===
 echo "📁 Ensuring moodledata exists and is writable..."
 mkdir -p /var/www/moodledata
 chown -R www-data:www-data /var/www/moodledata
 chmod -R 777 /var/www/moodledata
 
-# 1) Run CLI installer if this is first launch
+# === Run CLI Installer if needed ===
 if [ ! -f /var/www/html/config.php ]; then
   echo "🚀 Running Moodle CLI installer…"
   php admin/cli/install.php \
@@ -63,36 +67,28 @@ else
   echo "✅ config.php found, skipping install."
 fi
 
-# ─── after the installer block, before perms fix ───
+# === Patch config.php for proxy support ===
 CONFIG=/var/www/html/config.php
 
-# 1) Force the correct wwwroot
+echo "🔨 Enforcing correct wwwroot in config.php..."
 sed -i "s|^\(\$CFG->wwwroot *= *\).*|\1'https://theme.magicmoodle.com';|" "$CONFIG"
 
-# 2) Append proxy flags if missing
-if ! grep -q "reverseproxy" "$CONFIG"; then
-  echo "🔨 Adding reverseproxy & sslproxy flags to config.php…"
+if ! grep -q "trustedproxy" "$CONFIG"; then
+  echo "🔨 Adding reverseproxy, sslproxy and trustedproxy settings to config.php..."
   cat << 'EOF' >> "$CONFIG"
 
-// — Moodle runs behind an HTTPS terminator —
-$CFG->reverseproxy = true;
-$CFG->sslproxy    = true;
-$CFG->trustedproxy = ['127.0.0.1','100.64.0.0/10'];
+// — Moodle behind a reverse proxy —
+$CFG->wwwroot = 'https://theme.magicmoodle.com';
+$CFG->sslproxy = true;
 EOF
 fi
 
-
-# Fix perms one last time
+# === Fix ownership & permissions ===
+echo "🔧 Fixing permissions and ownership of Moodle directory..."
 chown -R www-data:www-data /var/www/html
-chmod -R 755 /var/www/html
+find /var/www/html -type d -exec chmod 755 {} \;
+find /var/www/html -type f -exec chmod 644 {} \;
 
-if [ -f /var/www/html/config.php ]; then
-  echo "🔧 Fixing ownership of config.php and Moodle code to www-data"
-  chown -R www-data:www-data /var/www/html
-  find /var/www/html -type d -exec chmod 755 {} \;
-  find /var/www/html -type f -exec chmod 644 {} \;
-fi
-
-# 2) Start Apache in the foreground
+# === Start Apache ===
 echo "🌀 Starting Apache…"
 exec apache2-foreground
