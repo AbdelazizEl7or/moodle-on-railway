@@ -22,12 +22,14 @@ RUN mkdir -p /var/www/moodledata \
     && chmod -R 777 /var/www/moodledata
 
 # -------------- PHP tuning --------------
-# prevent "max_input_vars" error
-RUN echo "max_input_vars = 5000" > /usr/local/etc/php/conf.d/moodle.ini
+RUN echo "max_input_vars = 5000\nupload_max_filesize = 64M\npost_max_size = 64M" > /usr/local/etc/php/conf.d/moodle.ini
 
 # -------------- Apache → Railway port --------------
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf \
   && sed -i 's/:80/:8080/g' /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf
+  
+
+
 
 # -------------- entrypoint script --------------
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
