@@ -54,22 +54,21 @@ else
   echo "✅ config.php found, skipping install."
 fi
 
-# ─── after installer / before fixing perms ───
+# ─── after the installer block, before perms fix ───
 CONFIG=/var/www/html/config.php
 
-# 1) Force the right wwwroot
+# 1) Force the correct wwwroot
 sed -i "s|^\(\$CFG->wwwroot *= *\).*|\1'https://theme.magicmoodle.com';|" "$CONFIG"
 
-# 2) Add proxy flags if missing
+# 2) Append proxy flags if missing
 if ! grep -q "reverseproxy" "$CONFIG"; then
   echo "🔨 Adding reverseproxy & sslproxy flags to config.php…"
   cat << 'EOF' >> "$CONFIG"
 
 // — Moodle runs behind an HTTPS terminator —
-\$CFG->reverseproxy = true;
-\$CFG->sslproxy    = true;
+$CFG->reverseproxy = true;
+$CFG->sslproxy    = true;
 EOF
-
 fi
 
 
