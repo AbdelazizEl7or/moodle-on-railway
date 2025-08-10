@@ -48,7 +48,7 @@ if [ ! -f /var/www/html/config.php ]; then
   echo "🚀 Running Moodle CLI installer…"
   php admin/cli/install.php \
     --lang=en \
-    --wwwroot="https://theme.magicmoodle.com" \
+    --wwwroot="https://magiclms.store" \
     --dataroot="/var/www/moodledata" \
     --dbtype="$MOODLE_DATABASE_TYPE" \
     --dbname="$MOODLE_DATABASE_NAME" \
@@ -71,14 +71,14 @@ fi
 CONFIG=/var/www/html/config.php
 
 echo "🔨 Enforcing correct wwwroot in config.php..."
-sed -i "s|^\(\$CFG->wwwroot *= *\).*|\1'https://theme.magicmoodle.com';|" "$CONFIG"
+sed -i "s|^\(\$CFG->wwwroot *= *\).*|\1'https://magiclms.store';|" "$CONFIG"
 
 if ! grep -q "trustedproxy" "$CONFIG"; then
   echo "🔨 Adding reverseproxy, sslproxy and trustedproxy settings to config.php..."
   cat << 'EOF' >> "$CONFIG"
 
 // — Moodle behind a reverse proxy —
-$CFG->wwwroot = 'https://theme.magicmoodle.com';
+$CFG->wwwroot = 'https://magiclms.store';
 $CFG->sslproxy = true;
 EOF
 fi
