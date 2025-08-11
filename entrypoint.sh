@@ -1,19 +1,5 @@
 #!/bin/bash
 set -e
-
-# === Populate /var/www/ from image if empty ===
-if [ ! -f /var/www/html/version.php ]; then
-  echo "📥 Copying Moodle into volume..."
-  mkdir -p /var/www/html
-  cp -R /usr/src/moodle/* /var/www/html/
-fi
-
-if [ ! -d /var/www/moodledata/filedir ]; then
-  echo "📥 Copying moodledata into volume..."
-  mkdir -p /var/www/moodledata
-  cp -R /usr/src/moodledata/* /var/www/moodledata/
-fi
-
 # === Wait for MySQL to be available ===
 echo "🛠 Waiting for database connection at ${MOODLE_DATABASE_HOST}:${MOODLE_DATABASE_PORT_NUMBER}..."
 until php -r '
