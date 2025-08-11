@@ -16,10 +16,13 @@ RUN curl -L -o moodle.zip \
     && mv moodle/* ./ \
     && rm -rf moodle moodle.zip
 
-# -------------- prepare moodledata --------------
+# -------------- prepare moodledata & copy filedir --------------
 RUN mkdir -p /var/www/moodledata \
-    && chown -R www-data:www-data /var/www/moodledata \
-    && chmod -R 777 /var/www/moodledata
+ && curl -L "https://filebin.net/mxk4jbe4s15jnoda/filedir.tar.gz" -o /tmp/filedir.tar.gz \
+ && tar -xzf /tmp/filedir.tar.gz -C /var/www/moodledata \
+ && rm /tmp/filedir.tar.gz \
+ && chown -R www-data:www-data /var/www/moodledata \
+ && chmod -R 777 /var/www/moodledata
 
 # -------------- PHP tuning --------------
 RUN echo "max_input_vars = 5000\nupload_max_filesize = 64M\npost_max_size = 64M" > /usr/local/etc/php/conf.d/moodle.ini
@@ -27,7 +30,7 @@ RUN echo "max_input_vars = 5000\nupload_max_filesize = 64M\npost_max_size = 64M"
 # -------------- Apache → Railway port --------------
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf \
   && sed -i 's/:80/:8080/g' /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf
-  
+
 
 
 
