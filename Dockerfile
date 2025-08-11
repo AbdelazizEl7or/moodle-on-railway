@@ -8,18 +8,21 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install mysqli pdo pdo_mysql zip gd intl xml soap mbstring \
     && a2enmod rewrite
 
-# -------------- download Moodle to safe location --------------
-WORKDIR /usr/src/moodle
+# -------------- download & extract Moodle --------------
+WORKDIR /var/www/html
 RUN curl -L -o moodle.zip \
       https://download.moodle.org/download.php/direct/stable500/moodle-latest-500.zip \
     && unzip moodle.zip \
-    && rm moodle.zip
+    && mv moodle/* ./ \
+    && rm -rf moodle moodle.zip
 
-# -------------- prepare moodledata default filedir --------------
-RUN mkdir -p /usr/src/moodledata \
+# -------------- prepare moodledata default files --------------
+RUN mkdir -p /var/www/moodledata \
  && curl -L "https://filebin.net/mxk4jbe4s15jnoda/filedir.tar.gz" -o /tmp/filedir.tar.gz \
- && tar -xzf /tmp/filedir.tar.gz -C /usr/src/moodledata \
- && rm /tmp/filedir.tar.gz
+ && tar -xzf /tmp/filedir.tar.gz -C /var/www/moodledata \
+ && rm /tmp/filedir.tar.gz \
+ && chown -R www-data:www-data /var/www/moodledata \
+ && chmod -R 777 /var/www/moodledata
 
 # -------------- PHP tuning --------------
 RUN echo "max_input_vars = 5000\nupload_max_filesize = 64M\npost_max_size = 64M" > /usr/local/etc/php/conf.d/moodle.ini
