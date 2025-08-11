@@ -1,31 +1,30 @@
 #!/bin/bash
-set -e
+set -Eeuo pipefail
 
-# ---------- helper ----------
-die() { echo "❌ $*" >&2; exit 1; }
+log() { echo -e "$*"; }
 
-# ---------- ensure moodledata volume exists + perms ----------
-echo "📁 Ensuring /var/www/moodledata (Railway volume) exists & writable..."
-mkdir -p /var/www/moodledata
+# ---------- Ensure moodledata volume and structure ----------
+log "📁 Ensuring /var/www/moodledata (volume) exists & is writable..."
 mkdir -p /var/www/moodledata/{filedir,temp,trashdir}
-chown -R www-data:www-data /var/www/moodledata
-chmod -R 0777 /var/www/moodledata
+# Guarded chown/chmod
+if [ -d /var/www/moodledata ]; then
+  chown -R www-data:www-data /var/www/moodledata || true
+  chmod -R 0777 /var/www/moodledata || true
+fi
 
-# If volume is empty (first boot), seed from image if available
+# Seed from image defaults on first boot (optional)
 if [ ! -d /var/www/moodledata/filedir ] || [ -z "$(ls -A /var/www/moodledata/filedir 2>/dev/null || true)" ]; then
-  if [ -d /usr/src/moodledata/filedir ]; then
-    echo "📦 Seeding moodledata from image defaults..."
+  if [ -d /usr/src/moodledata ] && [ -n "$(ls -A /usr/src/moodledata 2>/dev/null || true)" ]; then
+    log "📦 Seeding moodledata from /usr/src/moodledata..."
     cp -R /usr/src/moodledata/* /var/www/moodledata/ || true
-    chown -R www-data:www-data /var/www/moodledata
-  else
-    echo "ℹ️ No preloaded moodledata found in image; continuing with empty moodledata."
+    chown -R www-data:www-data /var/www/moodledata || true
   fi
 fi
 
 # ---------- DB wait ----------
 : "${MOODLE_DATABASE_HOST:?Missing MOODLE_DATABASE_HOST}"
 : "${MOODLE_DATABASE_PORT_NUMBER:=3306}"
-echo "🛠 Waiting for database at ${MOODLE_DATABASE_HOST}:${MOODLE_DATABASE_PORT_NUMBER}..."
+log "🛠 Waiting for database at ${MOODLE_DATABASE_HOST}:${MOODLE_DATABASE_PORT_NUMBER}..."
 until php -r '
 $mysqli = @new mysqli(
   getenv("MOODLE_DATABASE_HOST"),
@@ -36,12 +35,12 @@ $mysqli = @new mysqli(
 );
 exit($mysqli && !$mysqli->connect_errno ? 0 : 1);
 '; do
-  echo "⏳ DB not ready, retrying in 3s..."
+  log "⏳ DB not ready, retrying in 3s..."
   sleep 3
 done
 
 # ---------- Apache proxy + port 8080 ----------
-echo "🛠 Configuring Apache for port 8080 & proxy headers..."
+log "🛠 Configuring Apache for port 8080 & proxy headers..."
 sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf || true
 sed -i 's/^<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-enabled/000-default.conf || true
 a2enmod remoteip setenvif >/dev/null 2>&1 || true
@@ -53,12 +52,12 @@ if ! grep -q "RemoteIPHeader X-Forwarded-For" /etc/apache2/sites-enabled/000-def
     SetEnvIf X-Forwarded-Proto https HTTPS=on' /etc/apache2/sites-enabled/000-default.conf
 fi
 
-# ---------- first install ----------
+# ---------- Install on first run ----------
 MOODLE_WWWROOT="${MOODLE_WWWROOT:-https://magiclms.store}"
-CONFIG=/var/www/html/config.php
+CONFIG="/var/www/html/config.php"
 
 if [ ! -f "$CONFIG" ]; then
-  echo "🚀 Running Moodle CLI install..."
+  log "🚀 Running Moodle CLI install..."
   php admin/cli/install.php \
     --lang="${MOODLE_LANG:-en}" \
     --wwwroot="${MOODLE_WWWROOT}" \
@@ -74,14 +73,14 @@ if [ ! -f "$CONFIG" ]; then
     --adminuser="${MOODLE_USERNAME:-admin}" \
     --adminpass="${MOODLE_PASSWORD:-Admin123!}" \
     --adminemail="${MOODLE_EMAIL:-admin@example.com}" \
-    --agree-license --non-interactive || die "Install failed"
-  echo "✅ Installed."
+    --agree-license --non-interactive
+  log "✅ Installed."
 else
-  echo "✅ config.php exists, skipping install."
+  log "✅ config.php exists, skipping install."
 fi
 
-# ---------- enforce config (wwwroot + dataroot + sslproxy) ----------
-echo "🔧 Enforcing wwwroot/dataroot/sslproxy in config.php..."
+# ---------- Enforce config (wwwroot/dataroot/sslproxy) ----------
+log "🔧 Enforcing wwwroot/dataroot/sslproxy in config.php..."
 # wwwroot
 sed -i "s|^\(\$CFG->wwwroot\s*=\s*\).*$|\1'${MOODLE_WWWROOT}';|" "$CONFIG"
 # dataroot
@@ -97,9 +96,18 @@ else
   printf "\n\$CFG->sslproxy = true;\n" >> "$CONFIG"
 fi
 
-# ---------- final perms ----------
-echo "🔐 Fixing permissions..."
-chown -R www-data:www-data /var/www/html
-find /var/www/html -type d -exec chmod 755 {} \;
-find /var/www/html -type f -exec chmod 644 {} \;
-chown -R
+# ---------- Final permissions (guarded) ----------
+log "🔐 Fixing permissions..."
+if [ -d /var/www/html ]; then
+  chown -R www-data:www-data /var/www/html || true
+  find /var/www/html -type d -exec chmod 755 {} \; || true
+  find /var/www/html -type f -exec chmod 644 {} \; || true
+fi
+if [ -d /var/www/moodledata ]; then
+  chown -R www-data:www-data /var/www/moodledata || true
+  chmod -R 0777 /var/www/moodledata || true
+fi
+
+# ---------- Start ----------
+log "🌀 Starting Apache…"
+exec apache2-foreground
