@@ -20,7 +20,7 @@ RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf \
 # Moodle core in image
 WORKDIR /var/www/html
 RUN curl -L -o /tmp/moodle.zip \
-      https://download.moodle.org/download.php/direct/stable500/moodle-latest-500.zip \
+      https://download.moodle.org/download.php/direct/stable500/moodle-5.0.1.zip \
  && unzip /tmp/moodle.zip -d /tmp \
  && mv /tmp/moodle/* /var/www/html/ \
  && rm -rf /tmp/moodle /tmp/moodle.zip
